@@ -128,7 +128,7 @@ trade<-filter(trad,HS %in% con$HS)%>%
 
 
 ## ADDS BEC
-trade<-trade%>%concord_hs_bec(HS,origin = "HS1" ,destination = "BEC4",dest.digit = 3)
+trade$BEC<-concord_hs_bec(trade$HS,origin = "HS1" ,destination = "BEC4",dest.digit = 3)
 
 ## Separate export & import
 tw<-trade%>%filter(Partner == "World")
