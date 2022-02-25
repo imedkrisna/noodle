@@ -122,7 +122,15 @@ trad<-dplyr::bind_rows(myfiles) %>%
   rename(Flow=`Trade Flow`,ISO=`Partner ISO`,HS=`Commodity Code`,
          Kg=`Netweight (kg)`,USD=`Trade Value (US$)`)
 setwd('..')
-trade<-filter(trad,HS %in% con$HS)
+trade<-filter(trad,HS %in% con$HS)%>%
+  filter(nchar(HS)==6)
+
+
+
+## ADDS BEC
+trade<-trade%>%concord_hs_bec(HS,origin = "HS1" ,destination = "BEC4",dest.digit = 3)
+
+## Separate export & import
 tw<-trade%>%filter(Partner == "World")
 ta<-trade%>%filter(Partner != "World")
 twx<-filter(tw,Flow=="Export") %>% arrange(-USD)
