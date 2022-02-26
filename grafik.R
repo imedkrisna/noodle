@@ -1,7 +1,7 @@
 ## devtools::install_github("insongkim/concordance", dependencies = TRUE)
 library("tidyverse")
 library("concordance")
-
+library("patchwork")
 ## Plot TiVA database
 
 ctr<-c('year','IDN','VNM','THA','MYS','SGP')
@@ -125,10 +125,10 @@ setwd('..')
 trade<-filter(trad,HS %in% con$HS)%>%
   filter(nchar(HS)==6)
 
-
-
-## ADDS BEC
+## ADDS BEC & final
 trade$BEC<-concord_hs_bec(trade$HS,origin = "HS1" ,destination = "BEC4",dest.digit = 3)
+trade$final<-ifelse(trade$BEC==112,1,ifelse(trade$BEC==122,1,0))
+trade<-trade%>% filter(str_detect(BEC, "^1"))
 
 ## Separate export & import
 tw<-trade%>%filter(Partner == "World")
@@ -137,9 +137,9 @@ twx<-filter(tw,Flow=="Export") %>% arrange(-USD)
 twm<-filter(tw,Flow=="Import") %>% arrange(-USD)
 
 ## Cek persentase impor
-twm2019<-filter(twm,Year==2020) %>%
+twm2020<-filter(twm,Year==2020) %>%
   mutate(USDPCT=paste0(round(USD/sum(USD)*100,2),"%"))
-twx2019<-filter(twx,Year==2020) %>%
+twx2020<-filter(twx,Year==2020) %>%
   mutate(USDPCT=paste0(round(USD/sum(USD)*100,2),"%"))
 twm2010<-filter(twm,Year==2010) %>%
   mutate(USDPCT=paste0(round(USD/sum(USD)*100,2),"%"))
@@ -150,6 +150,74 @@ twm2005<-filter(twm,Year==2005) %>%
 twx2005<-filter(twx,Year==2005) %>%
   mutate(USDPCT=paste0(round(USD/sum(USD)*100,2),"%"))
 
+## Top 5 in 2020
+twx2020$millUSD<-twx2020$USD/1000000
+twm2020$millUSD<-twm2020$USD/1000000
+fx<-twx2020 %>% group_by(final) %>% slice_max(order_by = USD, n = 5)
+fm<-twm2020 %>% group_by(final) %>% slice_max(order_by = USD, n = 5)
+ffx<-fx%>%filter(final==1)
+fix<-fx%>%filter(final==0)
+ffm<-fm%>%filter(final==1)
+fim<-fm%>%filter(final==0)
+# THE PLOT!
+aa<-labs(y="Million USD",x="Products")
+bb<-ylim(0,13000)
+
+a<-ggplot(ffx, aes(x=HS,y=millUSD))+
+  geom_bar(size=1.1,stat="identity") + coord_flip()+
+  ggtitle("Final goods exports")+
+  aa+bb+
+  scale_x_discrete(breaks=c("210690","190230","160414","151790","041000"),labels=c(
+    "Tofu etc",
+    "Noodle",
+    "Fisn,can",
+    "Margarine",
+    "Other \n animal"
+ ))
+
+b<-ggplot(ffm, aes(x=HS,y=millUSD))+
+  geom_bar(size=1.1,stat="identity") + coord_flip()+
+  ggtitle("Final goods imports")+
+  aa+bb+
+  scale_x_discrete(breaks=c("210690","080810","080610","070320","020230"),labels=c(
+    "Food prep",
+    "Apples",
+    "Grapes",
+    "Garlic",
+    "Beef"
+  ))
+c<-ggplot(fix, aes(x=HS,y=millUSD))+
+  geom_bar(size=1.1,stat="identity") + coord_flip()+
+  ggtitle("Intermediate goods exports")+
+  aa+bb+
+  scale_x_discrete(breaks=c("180400","151329","151190","151110","090111"),labels=c(
+    "Cocoa\nbutter",
+   "Palm kernel\noil",
+    "Palm oil",
+    "CPO",
+    "Coffee"
+  ))
+d<-ggplot(fim, aes(x=HS,y=millUSD))+
+  geom_bar(size=1.1,stat="identity") + coord_flip()+
+  ggtitle("Intermediate goods imports")+
+  aa+bb+
+  scale_x_discrete(breaks=c("190190","180100","170230","040410","040210"),labels=c(
+    "Flour",
+   "Cocoa\nbeans",
+    "Sugar",
+    "Whey",
+    "Milk"
+  ))
+
+f<-a+b+c+d
+f<-f+plot_annotation(
+  title = "Top 5 Indonesia's food trade in 2020",
+  caption = 'Source: UN Comtrade Database'
+) &
+  theme_classic()
+f
+## Saving the plot
+ggsave("final.png",f)
 
 ## TARIFF WTO
 

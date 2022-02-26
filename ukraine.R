@@ -44,6 +44,12 @@ filter(trad,HS == "15") %>% filter(Year=="2020") %>% filter(Partner != "World") 
   filter(Partner==c("Ukraine","Russian Federation"))
 
 ## Import
+### 17
+filter(trad,HS == "17") %>% filter(Year=="2020") %>% filter(Partner != "World") %>%
+  filter(Flow == "Import") %>%
+  mutate(pct=paste0(round(USD/sum(USD)*100,2),"%")) %>%
+  filter(Partner=="Russian Federation" | Partner=="Ukraine")
+
 ### 10
 filter(trad,HS == "10") %>% filter(Year=="2020") %>% filter(Partner != "World") %>%
   filter(Flow == "Import") %>%
