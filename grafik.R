@@ -2,6 +2,7 @@
 library("tidyverse")
 library("concordance")
 library("patchwork")
+library("ggthemes")
 ## Plot TiVA database
 
 ctr<-c('year','IDN','VNM','THA','MYS','SGP')
@@ -120,21 +121,88 @@ trad<-dplyr::bind_rows(myfiles) %>%
   select('Classification','Year','Trade Flow','Partner','Partner ISO','Commodity Code',
           'Commodity','Netweight (kg)','Trade Value (US$)') %>%
   rename(Flow=`Trade Flow`,ISO=`Partner ISO`,HS=`Commodity Code`,
-         Kg=`Netweight (kg)`,USD=`Trade Value (US$)`)
+         kg=`Netweight (kg)`,USD=`Trade Value (US$)`)
+trad$milUSD<-trad$USD/1000000
+trad$ton<-trad$kg/1000
 setwd('..')
 trade<-filter(trad,HS %in% con$HS)%>%
   filter(nchar(HS)==6)
 
 ## ADDS BEC & final
-trade$BEC<-concord_hs_bec(trade$HS,origin = "HS1" ,destination = "BEC4",dest.digit = 3)
+trade$BEC<-concord_hs_bec(trade$HS,origin = "HS" ,destination = "BEC4",dest.digit = 3)
 trade$final<-ifelse(trade$BEC==112,1,ifelse(trade$BEC==122,1,0))
-trade<-trade%>% filter(str_detect(BEC, "^1"))
+trade<-trade %>% filter(str_detect(BEC, "^1"))
 
 ## Separate export & import
+### Finxx=finx without CPO
 tw<-trade%>%filter(Partner == "World")
 ta<-trade%>%filter(Partner != "World")
 twx<-filter(tw,Flow=="Export") %>% arrange(-USD)
+twx<-twx %>% mutate(final=replace(final, str_detect(HS,"^15")==TRUE,2))
+twxx<-twx %>% filter(final!=2)
 twm<-filter(tw,Flow=="Import") %>% arrange(-USD)
+
+### By USD
+finx<-twx%>%group_by(Year,final)%>%summarise(wew=sum(milUSD))
+finx$Flow<-"Export"
+finxx<-finx%>%filter(final!=2)
+finxx$Flow<-"Export"
+finm<-twm%>%group_by(Year,final)%>%summarise(wew=sum(milUSD))
+finm$Flow<-"Import"
+fin<-rbind(finxx,finm)
+
+### By ton
+tfinx<-twx%>%group_by(Year,final)%>%summarise(wew=sum(ton))
+tfinx$Flow<-"Export"
+tfinxx<-finx%>%filter(final!=2)
+tfinxx$Flow<-"Export"
+tfinm<-twm%>%group_by(Year,final)%>%summarise(wew=sum(ton))
+tfinm$Flow<-"Import"
+tfin<-rbind(tfinxx,tfinm)
+
+### Without CPO, exports & imports side-by-side, USD
+ggplot(fin,aes(Year,wew,color=factor(final),linetype=factor(final)))+geom_line(size=1.5)+
+  facet_wrap(~Flow,as.table = FALSE) +
+  theme_test()+
+  theme(legend.position = "bottom",legend.title = element_blank())+
+  labs(title="Indonesian Food Exports and Imports, 2002-2020",
+       subtitle="BEC rev4 classification, without palm oil products",
+       caption = "Source: UN Comtrade Database",
+       y="Million USD")+
+  scale_color_discrete(labels=c("intermediate goods","final goods"))+
+  scale_linetype_discrete(labels=c("intermediate goods","final goods"))
+ggsave("food_trade_USD.png")
+
+### Without CPO, exports & imports side-by-side, ton
+ggplot(tfin,aes(Year,wew,color=factor(final),linetype=factor(final)))+geom_line(size=1.5)+
+  facet_wrap(~Flow,as.table = FALSE) +
+  theme_test()+
+  theme(legend.position = "bottom",legend.title = element_blank())+
+  labs(title="Indonesian Food Exports and Imports, 2002-2020",
+       subtitle="BEC rev4 classification, without palm oil products",
+       caption = "Source: UN Comtrade Database",
+       y="Ton")+
+  scale_color_discrete(labels=c("intermediate goods","final goods"))+
+  scale_linetype_discrete(labels=c("intermediate goods","final goods"))
+ggsave("food_trade_kg.png")
+
+### Exports only, intermediate, final, CPO
+ggplot(finx,aes(x=Year,y=wew,color=factor(final),linetype=factor(final)))+geom_line(size=1.2)+
+  theme_classic()+
+  theme(legend.position = "bottom",legend.title = element_blank())+
+  labs(title="Indonesian Food Exports, 2002-2020",
+       subtitle="BEC rev4 + HS 15",
+       caption = "Source: UN Comtrade Database",
+       y="Million USD")+
+  scale_color_discrete(labels=c("intermediate goods","final goods","Palm oil related goods"))+
+  scale_linetype_discrete(labels=c("intermediate goods","final goods","Palm oil related goods"))
+ggsave("food_exports_CPO.png")
+
+xxx<-ggplot(finxx,aes(x=Year,y=wew,color=factor(final),linetype=factor(final)))+geom_line(size=1.2)
+mmm<-ggplot(finm,aes(x=Year,y=wew,color=factor(final),linetype=factor(final)))+geom_line(size=1.2)
+food<-xxx+mmm+plot_layout(ncol=2,heights = unit(200, "point")) &
+  theme_classic()+
+  theme(legend.position = "bottom",legend.title = element_blank())
 
 ## Cek persentase impor
 twm2020<-filter(twm,Year==2020) %>%
@@ -148,6 +216,15 @@ twx2010<-filter(twx,Year==2010) %>%
 twm2005<-filter(twm,Year==2005) %>%
   mutate(USDPCT=paste0(round(USD/sum(USD)*100,2),"%"))
 twx2005<-filter(twx,Year==2005) %>%
+  mutate(USDPCT=paste0(round(USD/sum(USD)*100,2),"%"))
+twm2011<-filter(twm,Year==2011) %>%
+  mutate(USDPCT=paste0(round(USD/sum(USD)*100,2),"%"))
+twx2011<-filter(twx,Year==2011) %>%
+  mutate(USDPCT=paste0(round(USD/sum(USD)*100,2),"%"))
+twm2012<-filter(twm,Year==2012) %>%
+  mutate(USDPCT=paste0(round(USD/sum(USD)*100,2),"%"))%>%
+  rename(newUSD=USD)
+twx2012<-filter(twx,Year==2012) %>%
   mutate(USDPCT=paste0(round(USD/sum(USD)*100,2),"%"))
 
 ## Top 5 in 2020
