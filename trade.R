@@ -115,7 +115,7 @@ ggplot(tfin,aes(Year,wew,color=factor(final),linetype=factor(final)))+geom_line(
        y="Ton")+
   scale_color_discrete(labels=c("intermediate goods","final goods"))+
   scale_linetype_discrete(labels=c("intermediate goods","final goods"))
-ggsave("fig/food_trade_kg.png")
+ggsave("food_trade_kg.png")
 
 ### Exports only, intermediate, final, CPO
 ggplot(finx,aes(x=Year,y=wew,color=factor(final),linetype=factor(final)))+geom_line(size=1.2)+
