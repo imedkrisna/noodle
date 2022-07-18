@@ -40,7 +40,7 @@ ggplot(share, aes(x=year,y=values,color=countries,group=countries))+
   labs(title="Share of foreign value added in a countries' food,beverage and tobacco export",
        caption="source: OECD",
        x="Year",
-       y="Million USD") +
+       y="%") +
   theme_classic() +
   theme(legend.position = "bottom",legend.title = element_blank()) +
   scale_color_discrete(labels=labz) +

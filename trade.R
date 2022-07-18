@@ -136,11 +136,13 @@ food<-xxx+mmm+plot_layout(ncol=2,heights = unit(200, "point")) &
   theme(legend.position = "bottom",legend.title = element_blank())
 
 ## Cek persentase impor
-twm2020<-filter(twm,Year==2020) %>%
+### CHANGE YEAR IF YOU WANT TO CHANGE YEAR
+hahaha<-2019
+twm2020<-filter(twm,Year==hahaha) %>%
   mutate(USDPCT=paste0(round(USD/sum(USD)*100,2),"%"))
-twx2020<-filter(twx,Year==2020) %>%
+twx2020<-filter(twx,Year==hahaha) %>%
   mutate(USDPCT=paste0(round(USD/sum(USD)*100,2),"%"))
-twxxx2020<-filter(twxxx,Year==2020) %>%
+twxxx2020<-filter(twxxx,Year==hahaha) %>%
   mutate(USDPCT=paste0(round(USD/sum(USD)*100,2),"%"))
 
 
